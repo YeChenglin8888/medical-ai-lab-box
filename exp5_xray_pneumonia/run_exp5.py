@@ -45,6 +45,10 @@ def make_model(name, pretrained):
         weights = models.ResNet50_Weights.DEFAULT if pretrained else None
         model = models.resnet50(weights=weights)
         model.fc = nn.Linear(model.fc.in_features, 2)
+    elif name == "vit_b_16":
+        weights = models.ViT_B_16_Weights.DEFAULT if pretrained else None
+        model = models.vit_b_16(weights=weights)
+        model.heads.head = nn.Linear(model.heads.head.in_features, 2)
     else:
         raise ValueError(f"不支持的模型: {name}")
     return model
@@ -168,7 +172,7 @@ def save_predictions(model, loader, device):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", default="convnext_tiny", choices=["convnext_tiny", "efficientnet_b0", "resnet50"])
+    parser.add_argument("--model", default="convnext_tiny", choices=["convnext_tiny", "efficientnet_b0", "resnet50", "vit_b_16"])
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--learning-rate", type=float, default=1e-4)
