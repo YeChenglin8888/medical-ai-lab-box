@@ -2,3 +2,5 @@ __pycache__/
 catboost_info/
 *.pyc
 *.pt
+reports/_assets/
+reports/_render*/
