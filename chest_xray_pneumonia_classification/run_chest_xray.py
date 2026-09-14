@@ -16,8 +16,8 @@ from torch.utils.data import DataLoader, random_split
 
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "教学数据"
-OUT_DIR = BASE_DIR / "运行结果"
+DATA_DIR = BASE_DIR / "data"
+OUT_DIR = BASE_DIR / "outputs" / "pc"
 CLASSES = ["NORMAL", "PNEUMONIA"]
 
 
@@ -45,6 +45,10 @@ def make_model(name, pretrained):
         weights = models.ResNet50_Weights.DEFAULT if pretrained else None
         model = models.resnet50(weights=weights)
         model.fc = nn.Linear(model.fc.in_features, 2)
+    elif name == "vit_b_16":
+        weights = models.ViT_B_16_Weights.DEFAULT if pretrained else None
+        model = models.vit_b_16(weights=weights)
+        model.heads.head = nn.Linear(model.heads.head.in_features, 2)
     else:
         raise ValueError(f"不支持的模型: {name}")
     return model
@@ -135,7 +139,7 @@ def evaluate(model, loader, loss_fn, device):
 
 
 def save_history(history):
-    pd.DataFrame(history).to_csv(OUT_DIR / "训练过程.csv", index=False, encoding="utf-8-sig")
+    pd.DataFrame(history).to_csv(OUT_DIR / "training_history.csv", index=False, encoding="utf-8-sig")
     plt.figure(figsize=(7, 4))
     plt.plot([x["epoch"] for x in history], [x["train_loss"] for x in history], label="train")
     plt.plot([x["epoch"] for x in history], [x["val_loss"] for x in history], label="val")
@@ -144,7 +148,7 @@ def save_history(history):
     plt.title("Training Curve")
     plt.legend()
     plt.tight_layout()
-    plt.savefig(OUT_DIR / "训练验证损失曲线.png", dpi=180)
+    plt.savefig(OUT_DIR / "loss_curve.png", dpi=180)
     plt.close()
 
 
@@ -163,12 +167,12 @@ def save_predictions(model, loader, device):
                 path = Path(samples[offset][0]).name if offset < len(samples) else str(offset)
                 rows.append({"文件名": path, "肺炎概率": round(float(p), 6), "类别预测": int(c)})
                 offset += 1
-    pd.DataFrame(rows).to_csv(OUT_DIR / "测试集逐样本预测.csv", index=False, encoding="utf-8-sig")
+    pd.DataFrame(rows).to_csv(OUT_DIR / "test_predictions.csv", index=False, encoding="utf-8-sig")
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", default="convnext_tiny", choices=["convnext_tiny", "efficientnet_b0", "resnet50"])
+    parser.add_argument("--model", default="convnext_tiny", choices=["convnext_tiny", "efficientnet_b0", "resnet50", "vit_b_16"])
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--learning-rate", type=float, default=1e-4)
@@ -197,9 +201,9 @@ def main():
         print(f"epoch {epoch}/{args.epochs} train_loss={train_loss:.4f} val_loss={val['loss']:.4f} val_f1={val['F1']:.4f}")
         if val["F1"] > best_f1:
             best_f1 = val["F1"]
-            torch.save(model.state_dict(), OUT_DIR / "最佳模型权重.pt")
+            torch.save(model.state_dict(), OUT_DIR / "best_model.pt")
 
-    model.load_state_dict(torch.load(OUT_DIR / "最佳模型权重.pt", map_location=device))
+    model.load_state_dict(torch.load(OUT_DIR / "best_model.pt", map_location=device))
     test = evaluate(model, test_loader, loss_fn, device)
     save_history(history)
     save_predictions(model, test_loader, device)
@@ -219,7 +223,7 @@ def main():
                 "F1": round(test["F1"], 4),
             }
         ]
-    ).to_csv(OUT_DIR / "模型评价指标.csv", index=False, encoding="utf-8-sig")
+    ).to_csv(OUT_DIR / "metrics.csv", index=False, encoding="utf-8-sig")
 
     plt.figure(figsize=(4, 4))
     plt.imshow(test["cm"], cmap="Blues")
@@ -232,7 +236,7 @@ def main():
         for j in range(2):
             plt.text(j, i, str(test["cm"][i, j]), ha="center", va="center")
     plt.tight_layout()
-    plt.savefig(OUT_DIR / "混淆矩阵.png", dpi=180)
+    plt.savefig(OUT_DIR / "confusion_matrix.png", dpi=180)
     plt.close()
 
     print("实验五完成，结果已保存到:", OUT_DIR)

@@ -1,18 +1,53 @@
 # medical-ai-lab-box
 
-医学人工智能实验箱迁移包。
+Medical AI lab code, datasets, and run outputs for the lab box workflow.
 
-## 实验箱下载运行
+## Repository Layout
+
+```text
+diabetes_genetic_risk_monitoring/
+  run_diabetes_risk.py
+  data/
+  outputs/
+    pc/
+    lab_box/
+
+chest_xray_pneumonia_classification/
+  run_chest_xray.py
+  data/
+  outputs/
+    pc/
+    lab_box/
+
+docs/
+```
+
+## Lab Box Quick Start
 
 ```bash
 git clone https://github.com/YeChenglin8888/medical-ai-lab-box.git
 cd medical-ai-lab-box
 ```
 
-实验五推荐使用英文目录：
+Diabetes genetic risk monitoring:
 
 ```bash
-cd exp5_xray_pneumonia
+cd diabetes_genetic_risk_monitoring
 python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
-python run_exp5.py --model efficientnet_b0 --epochs 3 --batch-size 4 2>&1 | tee exp5_run.log
+python run_diabetes_risk.py 2>&1 | tee run_diabetes_risk.log
+```
+
+Chest X-ray pneumonia classification:
+
+```bash
+cd ../chest_xray_pneumonia_classification
+python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
+python run_chest_xray.py --model efficientnet_b0 --epochs 3 --batch-size 4 2>&1 | tee run_chest_xray.log
+```
+
+PC CUDA run:
+
+```powershell
+cd chest_xray_pneumonia_classification
+python run_chest_xray.py --model vit_b_16 --epochs 10 --batch-size 8
 ```

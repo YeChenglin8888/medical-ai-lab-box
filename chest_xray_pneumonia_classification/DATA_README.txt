@@ -1,6 +1,6 @@
-请将胸部X光数据放入本目录下的“教学数据”文件夹，结构如下：
+请将胸部X光数据放入本目录下的 data 文件夹，结构如下：
 
-教学数据/
+data/
 ├─ train/
 │  ├─ NORMAL/
 │  └─ PNEUMONIA/
@@ -12,7 +12,7 @@
    └─ PNEUMONIA/
 
 运行示例：
-python "实验五_胸部X光肺炎分类.py" --epochs 5 --batch-size 8
+python run_chest_xray.py --epochs 5 --batch-size 8
 
 实验箱CPU较慢时可改用：
-python "实验五_胸部X光肺炎分类.py" --model efficientnet_b0 --epochs 3 --batch-size 4
+python run_chest_xray.py --model efficientnet_b0 --epochs 3 --batch-size 4

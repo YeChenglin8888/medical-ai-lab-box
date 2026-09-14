@@ -35,8 +35,8 @@ except ModuleNotFoundError as exc:
 
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "数据"
-OUT_DIR = BASE_DIR / "运行结果"
+DATA_DIR = BASE_DIR / "data"
+OUT_DIR = BASE_DIR / "outputs" / "pc"
 RANDOM_STATE = 42
 TARGET = "患有糖尿病标识"
 ID_COL = "编号"
@@ -78,9 +78,9 @@ def write_data_check(train, test):
         for col, value in df.isna().sum().items():
             rows.append({"数据集": name, "检查项目": f"{col}缺失值", "结果": int(value)})
     train[TARGET].value_counts().rename_axis("标签").reset_index(name="样本数").to_csv(
-        OUT_DIR / "标签分布.csv", index=False, encoding="utf-8-sig"
+        OUT_DIR / "label_distribution.csv", index=False, encoding="utf-8-sig"
     )
-    pd.DataFrame(rows).to_csv(OUT_DIR / "数据检查记录.csv", index=False, encoding="utf-8-sig")
+    pd.DataFrame(rows).to_csv(OUT_DIR / "data_check.csv", index=False, encoding="utf-8-sig")
 
 
 def make_preprocessor():
@@ -154,14 +154,14 @@ def metric_row(name, y_true, proba):
 
 
 def save_plots(y_valid, probas):
-    metrics = pd.read_csv(OUT_DIR / "模型评价指标.csv", encoding="utf-8-sig")
+    metrics = pd.read_csv(OUT_DIR / "metrics.csv", encoding="utf-8-sig")
     ax = metrics.set_index("模型")[["Accuracy", "Precision", "Recall", "F1", "AUC"]].plot(kind="bar", figsize=(9, 5), ylim=(0, 1))
     ax.set_xlabel("Model")
     ax.set_ylabel("Score")
     ax.set_title("Validation Metrics")
     plt.xticks(rotation=20)
     plt.tight_layout()
-    plt.savefig(OUT_DIR / "指标比较图.png", dpi=180)
+    plt.savefig(OUT_DIR / "metrics_comparison.png", dpi=180)
     plt.close()
 
     plt.figure(figsize=(7, 5))
@@ -174,7 +174,7 @@ def save_plots(y_valid, probas):
     plt.title("ROC Curves")
     plt.legend()
     plt.tight_layout()
-    plt.savefig(OUT_DIR / "ROC曲线.png", dpi=180)
+    plt.savefig(OUT_DIR / "roc_curve.png", dpi=180)
     plt.close()
 
     for name, proba in probas.items():
@@ -182,7 +182,13 @@ def save_plots(y_valid, probas):
         ConfusionMatrixDisplay(cm, display_labels=["0", "1"]).plot(cmap="Blues")
         plt.title(name)
         plt.tight_layout()
-        plt.savefig(OUT_DIR / f"混淆矩阵_{name}.png", dpi=180)
+        filename = {
+            "随机森林": "confusion_matrix_random_forest.png",
+            "LightGBM": "confusion_matrix_lightgbm.png",
+            "CatBoost": "confusion_matrix_catboost.png",
+            "软投票融合": "confusion_matrix_soft_voting.png",
+        }[name]
+        plt.savefig(OUT_DIR / filename, dpi=180)
         plt.close()
 
 
@@ -190,8 +196,8 @@ def main():
     OUT_DIR.mkdir(exist_ok=True)
     warnings.filterwarnings("ignore", category=UserWarning)
 
-    train_raw = read_csv("比赛训练集.csv")
-    test_raw = read_csv("比赛测试集.csv")
+    train_raw = read_csv("train.csv")
+    test_raw = read_csv("test.csv")
     write_data_check(train_raw, test_raw)
 
     train = add_features(train_raw)
@@ -217,8 +223,8 @@ def main():
 
     valid_probas["软投票融合"] = np.mean(list(valid_probas.values()), axis=0)
     rows.append(metric_row("软投票融合", y_valid, valid_probas["软投票融合"]))
-    pd.DataFrame(rows).to_csv(OUT_DIR / "模型评价指标.csv", index=False, encoding="utf-8-sig")
-    pd.DataFrame(params).to_csv(OUT_DIR / "模型参数记录.csv", index=False, encoding="utf-8-sig")
+    pd.DataFrame(rows).to_csv(OUT_DIR / "metrics.csv", index=False, encoding="utf-8-sig")
+    pd.DataFrame(params).to_csv(OUT_DIR / "model_params.csv", index=False, encoding="utf-8-sig")
     save_plots(y_valid, valid_probas)
 
     test_probas = []
@@ -238,7 +244,7 @@ def main():
             "CatBoost概率": np.round(test_probas[2], 6),
         }
     )
-    output.to_csv(OUT_DIR / "测试集预测结果.csv", index=False, encoding="utf-8-sig")
+    output.to_csv(OUT_DIR / "test_predictions.csv", index=False, encoding="utf-8-sig")
 
     assert len(output) == len(test_raw)
     assert output[ID_COL].is_unique
