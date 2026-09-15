@@ -4,3 +4,4 @@ catboost_info/
 *.pt
 reports/_assets/
 reports/_render*/
+reports/_template_work/
